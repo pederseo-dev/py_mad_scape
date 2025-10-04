@@ -1,9 +1,22 @@
-# py_mad_scape# Pac-Man Game - Instrucciones de Instalación
+# py_mad_scape - Pac-Man Multiplayer
 
-## Requisitos
-- Python 3.7 o superior instalado en Windows
+Un juego de Pac-Man multijugador que permite a varios jugadores controlar el juego desde sus dispositivos en la red local usando una API REST.
 
-## Pasos de Instalación
+## 🎮 Características
+
+- **Multijugador en red local**: Hasta 2 jugadores pueden jugar simultáneamente
+- **Control remoto**: Los jugadores usan sus dispositivos como joysticks virtuales
+- **API REST**: Servidor FastAPI para comunicación entre dispositivos
+- **Algoritmo A***: IA para pathfinding de fantasmas
+- **Interfaz gráfica**: Visualización con Pygame
+
+## 📋 Requisitos
+
+- Python 3.7 o superior
+- Dispositivos conectados a la misma red local
+- Dependencias: pygame, fastapi, uvicorn, pydantic, requests
+
+## 🚀 Instalación
 
 ### 1. Crear entorno virtual
 ```bash
@@ -12,30 +25,22 @@ python -m venv venv
 
 ### 2. Activar el entorno virtual
 ```bash
+# Windows
 venv\Scripts\activate
+
+# Linux/Mac
+source venv/bin/activate
 ```
 
 ### 3. Instalar las dependencias
 ```bash
-pip install pygame fastapi uvicorn pydantic
+pip install pygame fastapi uvicorn pydantic requests
 ```
 
-## Ejecución del Proyecto
+## 🎯 Cómo Jugar
 
-### Ejecutar el juego
+### 1. Ejecutar el servidor del juego
 ```bash
 python main.py
-uvicorn main:app --reload
 ```
 
-## Desactivar el entorno virtual
-Cuando termines de trabajar, puedes desactivar el entorno con:
-```bash
-deactivate
-```
-
----
-
-## Notas
-- Asegúrate de activar el entorno virtual cada vez que trabajes en el proyecto
-- El archivo `main.py` debe estar en la raíz del proyecto

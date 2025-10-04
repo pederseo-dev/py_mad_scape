@@ -27,10 +27,10 @@ class Algoritmo:
         heapq.heappush(open_set, (0, self.inicio))
 
         g_score = [[float('inf')] * self.columnas for _ in range(self.filas)]
-        g_score[self.inicio[0]][self.inicio[1]] = 0 #agrega un 0 a la primera posicion
+        g_score[self.inicio[1]][self.inicio[0]] = 0 #agrega un 0 a la primera posicion
 
         f_score = [[float('inf')] * self.columnas for _ in range(self.filas)]
-        f_score[self.inicio[0]][self.inicio[1]] = self.heuristic(self.inicio, self.objetivo)
+        f_score[self.inicio[1]][self.inicio[0]] = self.heuristic(self.inicio, self.objetivo)
 
 
         #1)_______________________buscamos el coste total mas pequeno_________________________#
@@ -58,18 +58,18 @@ class Algoritmo:
 
                     if self.mapa[mov_eval[0]][mov_eval[1]] == 0 or self.mapa[mov_eval[0]][mov_eval[1]] == 2:
 
-                        tentative_g_score = g_score[pos_actual[0]][pos_actual[1]] + 1
+                        tentative_g_score = g_score[pos_actual[1]][pos_actual[0]] + 1
                         
 
             #4)________________________actualizacion de la cola de prioridades_______________________#
-                        if tentative_g_score < g_score[mov_eval[0]][mov_eval[1]]:
+                        if tentative_g_score < g_score[mov_eval[1]][mov_eval[0]]:
                             close_set[mov_eval] = pos_actual #nos indica de donde viene el movimiento evaluado
 
-                            g_score[mov_eval[0]][mov_eval[1]] = tentative_g_score #+1
+                            g_score[mov_eval[1]][mov_eval[0]] = tentative_g_score #+1
                             h_score = self.heuristic(mov_eval, self.objetivo)
-                            f_score[mov_eval[0]][mov_eval[1]] = tentative_g_score + h_score #costo total
+                            f_score[mov_eval[1]][mov_eval[0]] = tentative_g_score + h_score #costo total
 
-                            heapq.heappush(open_set, (f_score[mov_eval[0]][mov_eval[1]], mov_eval)) #carga los movimientos despues de la evaluacion
+                            heapq.heappush(open_set, (f_score[mov_eval[1]][mov_eval[0]], mov_eval)) #carga los movimientos despues de la evaluacion
             # print(close_set)                
 
         return None  # No se encontró una ruta

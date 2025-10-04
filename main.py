@@ -1,107 +1,124 @@
-import threading
 import pygame
 import sys
-from maps import MAP
-from players import run_api
+from mapa import MAP
+from config import *
+from functions import *
 
-def mover_jugador(mapa, jugador, nueva_pos):
-    # Buscar jugador en el mapa y borrarlo
-    for i, fila in enumerate(mapa):
-        for j, celda in enumerate(fila):
-            if celda == jugador:
-                mapa[i][j] = 0  # dejar camino vacío
-    # Poner en nueva posición
-    x, y = nueva_pos
-    mapa[y][x] = jugador
-
-
-# Hilo para el servidor
-api_thread = threading.Thread(target=run_api, daemon=True)
-api_thread.start()
 
 # Inicializar Pygame
 pygame.init()
 
-# Colores
-NEGRO = (0, 0, 0)
-AZUL = (33, 33, 222)
-BLANCO = (255, 255, 255)
-GRIS = (100, 100, 100)
-
-# Configuración
-TAMANO_CELDA = 20
-FPS = 60
-
-# Calcular dimensiones de la ventana
-filas = len(MAP)
-columnas = len(MAP[0])
-ANCHO = columnas * TAMANO_CELDA
-ALTO = filas * TAMANO_CELDA
-
-# Cargar imágenes y escalarlas al tamaño de celda
-TILES = {
-    0: pygame.transform.scale(pygame.image.load("assets/path.png"), (TAMANO_CELDA, TAMANO_CELDA)),
-    1: pygame.transform.scale(pygame.image.load("assets/wall.png"), (TAMANO_CELDA, TAMANO_CELDA)),
-    2: pygame.transform.scale(pygame.image.load("assets/food.png"), (TAMANO_CELDA, TAMANO_CELDA)),
-    "p1": pygame.transform.scale(pygame.image.load("assets/player1.png"), (TAMANO_CELDA, TAMANO_CELDA)),
-    "p2": pygame.transform.scale(pygame.image.load("assets/player2.png"), (TAMANO_CELDA, TAMANO_CELDA)),
-}
-
-# Crear ventana
-ventana = pygame.display.set_mode((ANCHO, ALTO))
-pygame.display.set_caption("Visualizador de Matriz - Pac-Man")
+# Crear window
+window = pygame.display.set_mode((ANCHO, ALTO))
+pygame.display.set_caption("Pac-Man Multiplayer - Hackathon")
 
 # Reloj para controlar FPS
-reloj = pygame.time.Clock()
+clock = pygame.time.Clock()
 
-def dibujar_matriz(superficie, MAP):
-    """Dibuja la MAP en la superficie"""
-    for fila in range(len(MAP)):
-        for columna in range(len(MAP[fila])):
-            x = columna * TAMANO_CELDA
-            y = fila * TAMANO_CELDA
-            
-            valor = MAP[fila][columna]
-            
-            # Asignar color según el valor
-            if valor == 0:  # Camino
-                color = NEGRO
-            elif valor == 1:  # Muro
-                color = AZUL
-            elif valor == 2:  # Casa de fantasmas
-                color = GRIS
-            else:
-                color = BLANCO
-            
-            # Dibujar rectángulo
-            pygame.draw.rect(superficie, color, (x, y, TAMANO_CELDA, TAMANO_CELDA))
-            
-            # Dibujar borde para mejor visualización
-            if valor == 1:
-                pygame.draw.rect(superficie, AZUL, (x, y, TAMANO_CELDA, TAMANO_CELDA), 1)
-
-def close_event():
+def procesar_eventos():
+    """Procesa eventos del teclado y maneja cambios de estado del juego"""
+    global WINDOW_VIEW  # Permite modificar la variable global WINDOW_VIEW
+    
+    # Obtener todos los eventos de pygame (teclado, mouse, etc.)
     for evento in pygame.event.get():
+        
+        # EVENTO: Usuario cierra la ventana (X)
         if evento.type == pygame.QUIT:
-            ejecutando = False
-        if evento.type == pygame.KEYDOWN:
+            return False  # Salir del juego
+        
+        # EVENTO: Usuario presiona una tecla
+        elif evento.type == pygame.KEYDOWN:
+            
+            # TECLA ESC: Salir del juego
             if evento.key == pygame.K_ESCAPE:
-                ejecutando = False
+                return False  # Salir del juego
+
+            # TECLA ESPACIO: Iniciar juego (solo si estamos en menú y hay 6 jugadores)
+            elif evento.key == pygame.K_SPACE and WINDOW_VIEW == MENU_VIEW:
+                if len(PLAYERS) == 6:  # Verificar que hay exactamente 6 jugadores
+                    WINDOW_VIEW = GAME_VIEW  # Cambiar a pantalla de juego
+                    posicionar_jugadores()   # Colocar jugadores en el mapa
+                    posicionar_enemigo()     # Colocar enemigo en esquina inferior
+                    cargar_items()           # Cargar items en el mapa
+                    print("🎮 ¡Juego iniciado!")
+                    
+            # TECLA R: Agregar jugador de prueba (solo para testing)
+            elif evento.key == pygame.K_r and WINDOW_VIEW == MENU_VIEW:
+                test_players()
+            
+            # CONTROLES DE MOVIMIENTO (solo en pantalla de juego)
+            elif WINDOW_VIEW == GAME_VIEW:
+                # Jugador 1 (WASD)
+                if evento.key == pygame.K_w:
+                    PLAYERS["127.0.0.1"]["direccion"] = "up"
+                elif evento.key == pygame.K_s:
+                    PLAYERS["127.0.0.1"]["direccion"] = "down"
+                elif evento.key == pygame.K_a:
+                    PLAYERS["127.0.0.1"]["direccion"] = "left"
+                elif evento.key == pygame.K_d:
+                    PLAYERS["127.0.0.1"]["direccion"] = "right"
+                
+                # Jugador 2 (Flechas)
+                elif evento.key == pygame.K_UP:
+                    PLAYERS["127.0.0.2"]["direccion"] = "up"
+                elif evento.key == pygame.K_DOWN:
+                    PLAYERS["127.0.0.2"]["direccion"] = "down"
+                elif evento.key == pygame.K_LEFT:
+                    PLAYERS["127.0.0.2"]["direccion"] = "left"
+                elif evento.key == pygame.K_RIGHT:
+                    PLAYERS["127.0.0.2"]["direccion"] = "right"
+                
+                # Jugador 3 (IJKL)
+                elif evento.key == pygame.K_i:
+                    PLAYERS["127.0.0.3"]["direccion"] = "up"
+                elif evento.key == pygame.K_k:
+                    PLAYERS["127.0.0.3"]["direccion"] = "down"
+                elif evento.key == pygame.K_j:
+                    PLAYERS["127.0.0.3"]["direccion"] = "left"
+                elif evento.key == pygame.K_l:
+                    PLAYERS["127.0.0.3"]["direccion"] = "right"
+                
+                # Jugador 4 (Numpad)
+                elif evento.key == pygame.K_KP8:
+                    PLAYERS["127.0.0.4"]["direccion"] = "up"
+                elif evento.key == pygame.K_KP5:
+                    PLAYERS["127.0.0.4"]["direccion"] = "down"
+                elif evento.key == pygame.K_KP4:
+                    PLAYERS["127.0.0.4"]["direccion"] = "left"
+                elif evento.key == pygame.K_KP6:
+                    PLAYERS["127.0.0.4"]["direccion"] = "right"
+    return True
 
 # Bucle principal
-ejecutando = True
-while ejecutando:
-    # Manejar eventos
-    close_event()
+start = True
+frame_count = 0  # Contador de frames para controlar velocidad
+while start:
+    frame_count += 1  # Incrementar contador de frames
     
-    # Dibujar fondo
-    ventana.fill(NEGRO)
+    # Procesar eventos
+    if not procesar_eventos():
+        start = False
+        break
+    
+    # Dibujar según el estado actual
+    if WINDOW_VIEW == MENU_VIEW:
+        dibujar_pantalla_espera(window)
 
-    dibujar_matriz(ventana, MAP)
+    elif WINDOW_VIEW == GAME_VIEW:
+        # Procesar movimientos solo cada VELOCIDAD_MOVIMIENTO frames
+        # Esto mantiene 60 FPS de renderizado pero reduce velocidad de movimiento
+        if frame_count % VELOCIDAD_MOVIMIENTO == 0:
+            procesar_movimientos()
+            detectar_colision_items()  # Detectar colisiones con items
+        dibujar_pantalla_juego(window)
+        dibujar_puntajes(window)  # Mostrar puntajes en pantalla
+
+    else:
+        dibujar_pantalla_final(window)
     
     # Actualizar pantalla
     pygame.display.flip()
-    reloj.tick(FPS)
+    clock.tick(FPS)
 
 # Salir
 pygame.quit()
