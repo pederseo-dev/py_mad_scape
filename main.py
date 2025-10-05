@@ -1,125 +1,161 @@
 import pygame
 import sys
+import threading
+
 from mapa import MAP
 from config import *
 from functions import *
+from algoritmo import Algoritmo
+from utils import obtener_url_servidor
 
+try:
+    from api import run_api
+    api_thread = threading.Thread(target=run_api, daemon=True)
+    api_thread.start()
+    url, ip = obtener_url_servidor(puerto=80)
+except Exception:
+    pass
 
-# Inicializar Pygame
 pygame.init()
 
-# Crear window
 window = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Pac-Man Multiplayer - Hackathon")
 
-# Reloj para controlar FPS
 clock = pygame.time.Clock()
+
+def encontrar_jugador_mas_cercano():
+    """Encuentra el jugador más cercano al enemigo"""
+    if not ENEMIGO or not PLAYERS:
+        return None
+    
+    enemigo_pos = ENEMIGO["position"]
+    jugador_mas_cercano = None
+    distancia_minima = float('inf')
+    
+    for ip, jugador in PLAYERS.items():
+        jugador_pos = jugador["position"]
+        
+        distancia = ((enemigo_pos[0] - jugador_pos[0])**2 + 
+                     (enemigo_pos[1] - jugador_pos[1])**2)**0.5
+        
+        if distancia < distancia_minima:
+            distancia_minima = distancia
+            jugador_mas_cercano = jugador
+    
+    return jugador_mas_cercano
+
+def mover_enemigo():
+    """Mueve el enemigo hacia el jugador más cercano usando A*"""
+    if not ENEMIGO:
+        return
+    
+    objetivo = encontrar_jugador_mas_cercano()
+    if not objetivo:
+        return
+    
+    inicio = ENEMIGO["position"]
+    destino = objetivo["position"]
+    
+    algoritmo = Algoritmo(MAP, inicio, destino)
+    camino = algoritmo.a_star()
+    
+    if camino and len(camino) > 1:
+        pos_anterior = ENEMIGO["position"]
+        siguiente_pos = camino[1]
+        
+        if "item_debajo" in ENEMIGO and ENEMIGO["item_debajo"]:
+            MAP[pos_anterior[1]][pos_anterior[0]] = 4
+        else:
+            MAP[pos_anterior[1]][pos_anterior[0]] = 0
+        
+        valor_siguiente = MAP[siguiente_pos[1]][siguiente_pos[0]]
+        ENEMIGO["item_debajo"] = (valor_siguiente == 4)
+        
+        ENEMIGO["position"] = siguiente_pos
+        MAP[siguiente_pos[1]][siguiente_pos[0]] = "px"
+        
+        jugadores_a_eliminar = []
+        for ip, jugador in PLAYERS.items():
+            if ENEMIGO["position"] == jugador["position"]:
+                jugadores_a_eliminar.append(ip)
+        
+        for ip in jugadores_a_eliminar:
+            player_id = f"p{PLAYERS[ip]['id']}"
+            x, y = PLAYERS[ip]['position']
+            if MAP[y][x] == player_id:
+                MAP[y][x] = 0
+            del PLAYERS[ip]
+            
+        if len(PLAYERS) == 0:
+            global WINDOW_VIEW
+            WINDOW_VIEW = FINAL_VIEW
+
+def iniciar_juego():
+    """Inicia el juego automáticamente cuando hay suficientes jugadores"""
+    global WINDOW_VIEW
+    WINDOW_VIEW = GAME_VIEW
+    posicionar_jugadores()
+    posicionar_enemigo()
+    cargar_items()
 
 def procesar_eventos():
     """Procesa eventos del teclado y maneja cambios de estado del juego"""
-    global WINDOW_VIEW  # Permite modificar la variable global WINDOW_VIEW
-    
-    # Obtener todos los eventos de pygame (teclado, mouse, etc.)
     for evento in pygame.event.get():
         
-        # EVENTO: Usuario cierra la ventana (X)
         if evento.type == pygame.QUIT:
-            return False  # Salir del juego
+            return False
         
-        # EVENTO: Usuario presiona una tecla
         elif evento.type == pygame.KEYDOWN:
             
-            # TECLA ESC: Salir del juego
             if evento.key == pygame.K_ESCAPE:
-                return False  # Salir del juego
-
-            # TECLA ESPACIO: Iniciar juego (solo si estamos en menú y hay 6 jugadores)
-            elif evento.key == pygame.K_SPACE and WINDOW_VIEW == MENU_VIEW:
-                if len(PLAYERS) == 6:  # Verificar que hay exactamente 6 jugadores
-                    WINDOW_VIEW = GAME_VIEW  # Cambiar a pantalla de juego
-                    posicionar_jugadores()   # Colocar jugadores en el mapa
-                    posicionar_enemigo()     # Colocar enemigo en esquina inferior
-                    cargar_items()           # Cargar items en el mapa
-                    print("🎮 ¡Juego iniciado!")
+                return False
                     
-            # TECLA R: Agregar jugador de prueba (solo para testing)
             elif evento.key == pygame.K_r and WINDOW_VIEW == MENU_VIEW:
                 test_players()
-            
-            # CONTROLES DE MOVIMIENTO (solo en pantalla de juego)
-            elif WINDOW_VIEW == GAME_VIEW:
-                # Jugador 1 (WASD)
-                if evento.key == pygame.K_w:
-                    PLAYERS["127.0.0.1"]["direccion"] = "up"
-                elif evento.key == pygame.K_s:
-                    PLAYERS["127.0.0.1"]["direccion"] = "down"
-                elif evento.key == pygame.K_a:
-                    PLAYERS["127.0.0.1"]["direccion"] = "left"
-                elif evento.key == pygame.K_d:
-                    PLAYERS["127.0.0.1"]["direccion"] = "right"
-                
-                # Jugador 2 (Flechas)
-                elif evento.key == pygame.K_UP:
-                    PLAYERS["127.0.0.2"]["direccion"] = "up"
-                elif evento.key == pygame.K_DOWN:
-                    PLAYERS["127.0.0.2"]["direccion"] = "down"
-                elif evento.key == pygame.K_LEFT:
-                    PLAYERS["127.0.0.2"]["direccion"] = "left"
-                elif evento.key == pygame.K_RIGHT:
-                    PLAYERS["127.0.0.2"]["direccion"] = "right"
-                
-                # Jugador 3 (IJKL)
-                elif evento.key == pygame.K_i:
-                    PLAYERS["127.0.0.3"]["direccion"] = "up"
-                elif evento.key == pygame.K_k:
-                    PLAYERS["127.0.0.3"]["direccion"] = "down"
-                elif evento.key == pygame.K_j:
-                    PLAYERS["127.0.0.3"]["direccion"] = "left"
-                elif evento.key == pygame.K_l:
-                    PLAYERS["127.0.0.3"]["direccion"] = "right"
-                
-                # Jugador 4 (Numpad)
-                elif evento.key == pygame.K_KP8:
-                    PLAYERS["127.0.0.4"]["direccion"] = "up"
-                elif evento.key == pygame.K_KP5:
-                    PLAYERS["127.0.0.4"]["direccion"] = "down"
-                elif evento.key == pygame.K_KP4:
-                    PLAYERS["127.0.0.4"]["direccion"] = "left"
-                elif evento.key == pygame.K_KP6:
-                    PLAYERS["127.0.0.4"]["direccion"] = "right"
+    
     return True
 
-# Bucle principal
 start = True
-frame_count = 0  # Contador de frames para controlar velocidad
+frame_count = 0
+enemigo_frame_count = 0
+
+juego_iniciado = False
+
 while start:
-    frame_count += 1  # Incrementar contador de frames
+    frame_count += 1
+    enemigo_frame_count += 1
     
-    # Procesar eventos
     if not procesar_eventos():
         start = False
         break
     
-    # Dibujar según el estado actual
     if WINDOW_VIEW == MENU_VIEW:
         dibujar_pantalla_espera(window)
+        
+        # Iniciar automáticamente cuando hay 6 jugadores
+        if len(PLAYERS) >= LIMIT_PLAYERS and not juego_iniciado:
+            iniciar_juego()
+            juego_iniciado = True
 
     elif WINDOW_VIEW == GAME_VIEW:
-        # Procesar movimientos solo cada VELOCIDAD_MOVIMIENTO frames
-        # Esto mantiene 60 FPS de renderizado pero reduce velocidad de movimiento
         if frame_count % VELOCIDAD_MOVIMIENTO == 0:
-            procesar_movimientos()
-            detectar_colision_items()  # Detectar colisiones con items
+            fin_del_juego = procesar_movimientos()
+            if fin_del_juego:
+                WINDOW_VIEW = FINAL_VIEW
+                determinar_ganador()
+        
+        if enemigo_frame_count % VELOCIDAD_ENEMIGO == 0:
+            mover_enemigo()
+            enemigo_frame_count = 0
+            
         dibujar_pantalla_juego(window)
-        dibujar_puntajes(window)  # Mostrar puntajes en pantalla
+        dibujar_puntajes(window)
 
     else:
         dibujar_pantalla_final(window)
     
-    # Actualizar pantalla
     pygame.display.flip()
     clock.tick(FPS)
 
-# Salir
 pygame.quit()
 sys.exit()

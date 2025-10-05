@@ -34,7 +34,7 @@ source venv/bin/activate
 
 ### 3. Instalar las dependencias
 ```bash
-pip install pygame fastapi uvicorn pydantic requests
+pip install pygame fastapi uvicorn pydantic requests qrcode[pil] Pillow
 ```
 
 ## 🎯 Cómo Jugar
