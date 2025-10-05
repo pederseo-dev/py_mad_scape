@@ -18,6 +18,27 @@ except Exception:
 
 pygame.init()
 
+# Inicializar el mixer para música
+pygame.mixer.init()
+
+# Cargar música de fondo en loop automático
+try:
+    archivos_musica = ["music.wav", "musica.mp3", "musica.wav", "musica.ogg", "music.mp3", "background.mp3"]
+    
+    for archivo in archivos_musica:
+        try:
+            pygame.mixer.music.load(archivo)
+            pygame.mixer.music.play(-1)  # Loop infinito
+            print(f"🎵 Música cargada: {archivo}")
+            break
+        except Exception as e:
+            print(f"❌ Error con {archivo}: {e}")
+            continue
+    else:
+        print("⚠️ No se encontró archivo de música")
+except Exception as e:
+    print(f"⚠️ Error al cargar música: {e}")
+
 window = pygame.display.set_mode((ANCHO, ALTO))
 pygame.display.set_caption("Pac-Man Multiplayer - Hackathon")
 
@@ -62,6 +83,19 @@ def mover_enemigo():
     if camino and len(camino) > 1:
         pos_anterior = ENEMIGO["position"]
         siguiente_pos = camino[1]
+        
+        # Determinar dirección de movimiento para la animación
+        dx = siguiente_pos[0] - pos_anterior[0]
+        dy = siguiente_pos[1] - pos_anterior[1]
+        
+        if dx > 0:
+            ENEMIGO["direccion"] = "right"
+        elif dx < 0:
+            ENEMIGO["direccion"] = "left"
+        elif dy > 0:
+            ENEMIGO["direccion"] = "down"
+        elif dy < 0:
+            ENEMIGO["direccion"] = "up"
         
         if "item_debajo" in ENEMIGO and ENEMIGO["item_debajo"]:
             MAP[pos_anterior[1]][pos_anterior[0]] = 4
@@ -112,6 +146,7 @@ def procesar_eventos():
                     
             elif evento.key == pygame.K_r and WINDOW_VIEW == MENU_VIEW:
                 test_players()
+            
     
     return True
 

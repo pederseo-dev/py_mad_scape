@@ -1,6 +1,7 @@
 import pygame
 from config import *
 from utils import obtener_url_servidor, generar_qr
+from sprites import obtener_sprite_jugador, obtener_sprite_celda, obtener_sprite_fantasma, COLORES_PINGUINOS
 
 QR_CODE = None
 SERVER_URL = None
@@ -168,7 +169,8 @@ def test_players():
         nueva_ip = f"127.0.0.{len(PLAYERS)+1}"
         
         if nueva_ip not in PLAYERS:
-            max_id = max([player_data['id'] for player_data in PLAYERS.values()]) if PLAYERS else -1
+            # Asegurar que los IDs empiecen en 1
+            max_id = max([player_data['id'] for player_data in PLAYERS.values()]) if PLAYERS else 0
             nuevo_id = max_id + 1
             
             PLAYERS[nueva_ip] = {
@@ -183,53 +185,104 @@ def dibujar_pantalla_espera(ventana):
     """Dibuja la pantalla de espera con QR"""
     global QR_CODE, SERVER_URL
     
-    ventana.fill(NEGRO)
+    # Fondo negro retro
+    ventana.fill((0, 0, 0))  # Negro puro
     
     if QR_CODE is None:
         SERVER_URL, ip = obtener_url_servidor(puerto=80)
         QR_CODE = generar_qr(SERVER_URL, qr_size=200)
     
-    font_titulo = pygame.font.Font(None, 48)
-    titulo = font_titulo.render("PYMAD SCAPE", True, BLANCO)
-    ventana.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 50))
+    # Título con estilo retro
+    font_titulo = pygame.font.Font(None, 64)
+    titulo = font_titulo.render("PYMAD SCAPE", True, (0, 255, 0))  # Verde neón
+    ventana.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 40))
     
-    qr_x = ANCHO//2 - 100
-    qr_y = 120
+    # Subtítulo
+    font_subtitulo = pygame.font.Font(None, 24)
+    subtitulo = font_subtitulo.render("MULTIPLAYER ARCADE", True, (255, 0, 128))  # Rosa neón
+    ventana.blit(subtitulo, (ANCHO//2 - subtitulo.get_width()//2, 90))
+    
+    # QR Code con marco retro
+    qr_x = ANCHO//2 - 110
+    qr_y = 130
+    pygame.draw.rect(ventana, (0, 255, 0), (qr_x - 10, qr_y - 10, 220, 220), 3)
+    pygame.draw.rect(ventana, (255, 0, 128), (qr_x - 5, qr_y - 5, 210, 210), 2)
     ventana.blit(QR_CODE, (qr_x, qr_y))
     
-    font_url = pygame.font.Font(None, 24)
-    url_texto = font_url.render(f"Escanea o visita: {SERVER_URL}", True, BLANCO)
-    ventana.blit(url_texto, (ANCHO//2 - url_texto.get_width()//2, qr_y + 220))
+    # URL con estilo
+    font_url = pygame.font.Font(None, 20)
+    url_texto = font_url.render(f"Escanea o visita: {SERVER_URL}", True, (255, 255, 255))
+    ventana.blit(url_texto, (ANCHO//2 - url_texto.get_width()//2, qr_y + 230))
     
-    font_info = pygame.font.Font(None, 32)
-    info_texto = f"Jugadores conectados: {len(PLAYERS)}/6"
-    info = font_info.render(info_texto, True, BLANCO)
-    ventana.blit(info, (ANCHO//2 - info.get_width()//2, qr_y + 270))
+    # Información de jugadores con estilo retro
+    font_info = pygame.font.Font(None, 28)
+    info_texto = f"PLAYERS: {len(PLAYERS)}/6"
+    info = font_info.render(info_texto, True, (0, 255, 0))
+    ventana.blit(info, (ANCHO//2 - info.get_width()//2, qr_y + 260))
     
-    font_jugadores = pygame.font.Font(None, 24)
-    y_offset = qr_y + 320
+    # Mostrar jugadores con sus pingüinos
+    font_jugadores = pygame.font.Font(None, 22)
+    y_offset = qr_y + 300
+    
+    # Título de la sección de jugadores
+    titulo_jugadores = font_jugadores.render("CONNECTED PLAYERS:", True, (255, 0, 128))
+    ventana.blit(titulo_jugadores, (ANCHO//2 - titulo_jugadores.get_width()//2, y_offset))
+    y_offset += 35
+    
+    # Mostrar cada jugador con su pingüino
     for i, ip in enumerate(PLAYERS.keys()):
         if ip in PLAYERS:
-            username = PLAYERS[ip]['username']
-            texto = f"Jugador {i+1}: {username}"
-            superficie = font_jugadores.render(texto, True, BLANCO)
-            ventana.blit(superficie, (ANCHO//2 - superficie.get_width()//2, y_offset))
+            player_data = PLAYERS[ip]
+            username = player_data['username']
+            player_id = player_data['id'] - 1  # Convertir a índice 0-based
+            
+            # Asegurar que el player_id esté en el rango correcto (0-5)
+            if player_id >= len(COLORES_PINGUINOS):
+                player_id = player_id % len(COLORES_PINGUINOS)
+            
+            # Obtener sprite del pingüino
+            pinguino_sprite = obtener_sprite_jugador(player_id)
+            
+            # Posición del pingüino (lado izquierdo)
+            pinguino_x = ANCHO//2 - 120
+            pinguino_y = y_offset - 5
+            
+            # Dibujar pingüino
+            ventana.blit(pinguino_sprite, (pinguino_x, pinguino_y))
+            
+            # Texto del jugador (lado derecho)
+            texto = f"{username} (P{player_id + 1})"
+            superficie = font_jugadores.render(texto, True, (255, 255, 255))
+            ventana.blit(superficie, (ANCHO//2 - 60, y_offset))
+            
             y_offset += 30
     
     if len(PLAYERS) < 6:
-        instrucciones = font_jugadores.render("Esperando mas jugadores...", True, GRIS)
+        instrucciones = font_jugadores.render("WAITING FOR PLAYERS...", True, (0, 255, 0))
         ventana.blit(instrucciones, (ANCHO//2 - instrucciones.get_width()//2, y_offset + 20))
         
         # Instrucción para agregar jugadores de prueba
-        prueba = font_jugadores.render("Presiona R para agregar jugador de prueba", True, GRIS)
+        prueba = font_jugadores.render("PRESS R FOR TEST PLAYER", True, (255, 0, 128))
         ventana.blit(prueba, (ANCHO//2 - prueba.get_width()//2, y_offset + 50))
+        
     else:
-        iniciar = font_jugadores.render("Iniciando juego...", True, BLANCO)
+        iniciar = font_jugadores.render("STARTING GAME...", True, (0, 255, 0))
         ventana.blit(iniciar, (ANCHO//2 - iniciar.get_width()//2, y_offset + 20))
 
+def determinar_direccion_fantasma():
+    """Determina la dirección de movimiento del fantasma basada en su posición anterior"""
+    if not ENEMIGO:
+        return "up"
+    
+    # Usar la dirección almacenada en el enemigo
+    return ENEMIGO.get('direccion', 'up')
+
 def dibujar_pantalla_juego(window):
-    """Dibuja la pantalla del juego"""
+    """Dibuja la pantalla del juego con sprites animados"""
     window.fill(NEGRO)
+    
+    # Determinar dirección del fantasma
+    direccion_fantasma = determinar_direccion_fantasma()
     
     for fila in range(len(MAP)):
         for columna in range(len(MAP[fila])):
@@ -238,29 +291,37 @@ def dibujar_pantalla_juego(window):
             
             valor = MAP[fila][columna]
             
-            if valor == 0:
-                color = NEGRO
-            elif valor == 1:
-                color = AZUL
-            elif valor == 2:
-                color = GRIS
-            elif valor == 4:
-                color = (255, 255, 0)
-            elif str(valor) == "px":
-                color = ROJO
-            elif str(valor).startswith('p'):
-                color = BLANCO
+            # Determinar dirección del jugador si es un jugador
+            direccion_jugador = "down"  # Default
+            if str(valor).startswith('p') and str(valor) != "px":
+                # Buscar la dirección del jugador en PLAYERS
+                try:
+                    player_id = int(str(valor)[1:])
+                    for ip, player_data in PLAYERS.items():
+                        if player_data['id'] == player_id:
+                            direccion_jugador = player_data.get('direccion', 'down')
+                            break
+                except:
+                    pass
+            
+            # Obtener el sprite apropiado para esta celda con direcciones
+            if str(valor) == "px":
+                sprite = obtener_sprite_fantasma(direccion_fantasma)
+            elif str(valor).startswith('p') and str(valor) != "px":
+                try:
+                    player_id = int(str(valor)[1:]) - 1
+                    sprite = obtener_sprite_jugador(player_id, direccion_jugador)
+                except:
+                    sprite = obtener_sprite_jugador(0, direccion_jugador)
             else:
-                color = NEGRO
+                sprite = obtener_sprite_celda(valor)
             
-            pygame.draw.rect(window, color, (x, y, TAMANO_CELDA, TAMANO_CELDA))
+            # Escalar el sprite al tamaño de la celda si es necesario
+            if sprite.get_width() != TAMANO_CELDA or sprite.get_height() != TAMANO_CELDA:
+                sprite = pygame.transform.scale(sprite, (TAMANO_CELDA, TAMANO_CELDA))
             
-            if valor == 1:
-                pygame.draw.rect(window, AZUL, (x, y, TAMANO_CELDA, TAMANO_CELDA), 1)
-            elif str(valor) == "px":
-                pygame.draw.rect(window, ROJO, (x, y, TAMANO_CELDA, TAMANO_CELDA), 2)
-            elif str(valor).startswith('p'):
-                pygame.draw.rect(window, BLANCO, (x, y, TAMANO_CELDA, TAMANO_CELDA), 2)
+            # Dibujar el sprite
+            window.blit(sprite, (x, y))
 
 def dibujar_puntajes(window):
     """Dibuja los puntajes de los jugadores en pantalla"""
@@ -282,17 +343,26 @@ def dibujar_puntajes(window):
 
 def dibujar_pantalla_final(window):
     """Dibuja la pantalla de fin de juego con el ganador"""
-    window.fill(NEGRO)
+    # Fondo negro retro
+    window.fill((0, 0, 0))
     
     if len(PLAYERS) == 0:
-        font_titulo = pygame.font.Font(None, 72)
-        titulo = font_titulo.render("GAME OVER", True, ROJO)
-        window.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 200))
+        # Game Over
+        font_titulo = pygame.font.Font(None, 80)
+        titulo = font_titulo.render("GAME OVER", True, (255, 0, 0))
+        window.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 180))
         
-        font_mensaje = pygame.font.Font(None, 36)
-        mensaje = font_mensaje.render("Todos fueron atrapados!", True, BLANCO)
-        window.blit(mensaje, (ANCHO//2 - mensaje.get_width()//2, 300))
+        font_mensaje = pygame.font.Font(None, 32)
+        mensaje = font_mensaje.render("ALL PLAYERS CAUGHT!", True, (0, 255, 0))
+        window.blit(mensaje, (ANCHO//2 - mensaje.get_width()//2, 280))
+        
+        # Dibujar fantasma en el centro
+        fantasma_sprite = obtener_sprite_fantasma("down")
+        fantasma_sprite = pygame.transform.scale(fantasma_sprite, (64, 64))
+        window.blit(fantasma_sprite, (ANCHO//2 - 32, 320))
+        
     else:
+        # Ganador
         max_puntos = 0
         ganador = None
         
@@ -301,20 +371,29 @@ def dibujar_pantalla_final(window):
                 max_puntos = player_data['points']
                 ganador = player_data['username']
         
-        font_titulo = pygame.font.Font(None, 72)
-        titulo = font_titulo.render("GANADOR", True, BLANCO)
-        window.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 200))
+        font_titulo = pygame.font.Font(None, 80)
+        titulo = font_titulo.render("WINNER", True, (0, 255, 0))
+        window.blit(titulo, (ANCHO//2 - titulo.get_width()//2, 180))
         
         font_ganador = pygame.font.Font(None, 48)
         texto_ganador = f"{ganador}"
-        superficie_ganador = font_ganador.render(texto_ganador, True, (255, 255, 0))
-        window.blit(superficie_ganador, (ANCHO//2 - superficie_ganador.get_width()//2, 300))
+        superficie_ganador = font_ganador.render(texto_ganador, True, (255, 0, 128))
+        window.blit(superficie_ganador, (ANCHO//2 - superficie_ganador.get_width()//2, 280))
         
-        font_puntos = pygame.font.Font(None, 36)
-        texto_puntos = f"{max_puntos} puntos"
-        superficie_puntos = font_puntos.render(texto_puntos, True, BLANCO)
-        window.blit(superficie_puntos, (ANCHO//2 - superficie_puntos.get_width()//2, 350))
+        font_puntos = pygame.font.Font(None, 32)
+        texto_puntos = f"{max_puntos} POINTS"
+        superficie_puntos = font_puntos.render(texto_puntos, True, (255, 255, 0))
+        window.blit(superficie_puntos, (ANCHO//2 - superficie_puntos.get_width()//2, 330))
+        
+        # Dibujar pingüino ganador
+        for ip, player_data in PLAYERS.items():
+            if player_data['username'] == ganador:
+                player_id = player_data['id'] - 1
+                pinguino_ganador = obtener_sprite_jugador(player_id, "down")
+                pinguino_ganador = pygame.transform.scale(pinguino_ganador, (64, 64))
+                window.blit(pinguino_ganador, (ANCHO//2 - 32, 370))
+                break
     
     font_instrucciones = pygame.font.Font(None, 24)
-    instrucciones = font_instrucciones.render("Presiona ESC para salir", True, GRIS)
+    instrucciones = font_instrucciones.render("PRESS ESC TO EXIT", True, (0, 255, 0))
     window.blit(instrucciones, (ANCHO//2 - instrucciones.get_width()//2, 450))

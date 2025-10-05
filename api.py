@@ -30,32 +30,77 @@ async def home():
         }
         
         body {
-            font-family: 'Arial', sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Courier New', monospace;
+            background: #000;
+            background-image: 
+                radial-gradient(circle at 20% 80%, #ff0080 0%, transparent 50%),
+                radial-gradient(circle at 80% 20%, #00ff80 0%, transparent 50%),
+                radial-gradient(circle at 40% 40%, #8000ff 0%, transparent 50%);
             min-height: 100vh;
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            color: white;
+            color: #00ff00;
             padding: 20px;
+            animation: scanlines 0.1s linear infinite;
+        }
+        
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 4px; }
         }
         
         .container {
-            background: rgba(0, 0, 0, 0.3);
-            border-radius: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 3px solid #00ff00;
+            border-radius: 0;
             padding: 30px;
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
             max-width: 500px;
             width: 100%;
+            box-shadow: 
+                0 0 20px #00ff00,
+                inset 0 0 20px rgba(0, 255, 0, 0.1);
+            position: relative;
+        }
+        
+        .container::before {
+            content: '';
+            position: absolute;
+            top: -3px;
+            left: -3px;
+            right: -3px;
+            bottom: -3px;
+            background: linear-gradient(45deg, #ff0080, #00ff80, #8000ff, #ff0080);
+            border-radius: 0;
+            z-index: -1;
+            animation: borderGlow 2s linear infinite;
+        }
+        
+        @keyframes borderGlow {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
         }
         
         h1 {
             text-align: center;
             margin-bottom: 30px;
-            font-size: 2.5em;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            font-size: 3em;
+            font-weight: bold;
+            color: #00ff00;
+            text-shadow: 
+                0 0 10px #00ff00,
+                0 0 20px #00ff00,
+                0 0 30px #00ff00;
+            letter-spacing: 3px;
+            text-transform: uppercase;
+            animation: titleGlow 1.5s ease-in-out infinite alternate;
+        }
+        
+        @keyframes titleGlow {
+            from { text-shadow: 0 0 10px #00ff00, 0 0 20px #00ff00, 0 0 30px #00ff00; }
+            to { text-shadow: 0 0 20px #00ff00, 0 0 30px #00ff00, 0 0 40px #00ff00; }
         }
         
         .register-section {
@@ -65,32 +110,54 @@ async def home():
         input {
             width: 100%;
             padding: 15px;
-            border: none;
-            border-radius: 10px;
+            border: 2px solid #00ff00;
+            border-radius: 0;
             font-size: 1.2em;
-            margin-bottom: 10px;
-            background: rgba(255, 255, 255, 0.9);
+            font-family: 'Courier New', monospace;
+            margin-bottom: 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            transition: all 0.3s;
+            box-shadow: inset 0 0 10px rgba(0, 255, 0, 0.2);
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #ff0080;
+            box-shadow: 
+                0 0 15px #ff0080,
+                inset 0 0 10px rgba(255, 0, 128, 0.2);
+        }
+        
+        input::placeholder {
+            color: rgba(0, 255, 0, 0.5);
         }
         
         button {
             width: 100%;
             padding: 15px;
-            border: none;
-            border-radius: 10px;
+            border: 2px solid #00ff00;
+            border-radius: 0;
             font-size: 1.2em;
             font-weight: bold;
+            font-family: 'Courier New', monospace;
             cursor: pointer;
             transition: all 0.3s;
-        }
-        
-        .register-btn {
-            background: #4CAF50;
-            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
+            text-transform: uppercase;
+            letter-spacing: 2px;
         }
         
         .register-btn:hover {
-            background: #45a049;
-            transform: scale(1.05);
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 20px #00ff00;
+            border-color: #ff0080;
+            color: #ff0080;
+        }
+        
+        .register-btn:active {
+            background: rgba(255, 0, 128, 0.2);
         }
         
         .controls {
@@ -112,14 +179,25 @@ async def home():
         .control-btn {
             width: 80px;
             height: 80px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
+            background: rgba(0, 0, 0, 0.8);
+            color: #00ff00;
             font-size: 2em;
-            border: 2px solid white;
+            font-family: 'Courier New', monospace;
+            border: 2px solid #00ff00;
+            border-radius: 0;
+            transition: all 0.3s;
+            text-transform: uppercase;
+        }
+        
+        .control-btn:hover {
+            background: rgba(0, 255, 0, 0.1);
+            box-shadow: 0 0 20px #00ff00;
+            border-color: #ff0080;
+            color: #ff0080;
         }
         
         .control-btn:active {
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 0, 128, 0.2);
             transform: scale(0.95);
         }
         
