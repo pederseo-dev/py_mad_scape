@@ -255,7 +255,7 @@ def obtener_sprite_celda(valor_celda, direccion_jugador="down", direccion_fantas
     elif str(valor_celda).startswith('p'):
         # Extraer ID del jugador
         try:
-            player_id = int(str(valor_celda)[1:]) - 1
+            player_id = (int(str(valor_celda)[1:]) - 1) % len(COLORES_PINGUINOS)
             return obtener_sprite_jugador(player_id, direccion_jugador)
         except:
             return obtener_sprite_jugador(0, direccion_jugador)

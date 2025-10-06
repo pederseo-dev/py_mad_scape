@@ -349,7 +349,7 @@ async def register_user(data: UserData, request: Request):
     if ip in PLAYERS:
         raise HTTPException(status_code=400, detail="Ya estás registrado")
     
-    max_id = max([player_data['id'] for player_data in PLAYERS.values()]) if PLAYERS else -1
+    max_id = max([player_data['id'] for player_data in PLAYERS.values()]) if PLAYERS else 0
     nuevo_id = max_id + 1
     
     PLAYERS[ip] = {

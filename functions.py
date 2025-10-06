@@ -234,7 +234,7 @@ def dibujar_pantalla_espera(ventana):
         if ip in PLAYERS:
             player_data = PLAYERS[ip]
             username = player_data['username']
-            player_id = player_data['id'] - 1  # Convertir a índice 0-based
+            player_id = (player_data['id'] - 1) % len(COLORES_PINGUINOS)  # Convertir a índice 0-based con módulo
             
             # Asegurar que el player_id esté en el rango correcto (0-5)
             if player_id >= len(COLORES_PINGUINOS):
@@ -309,7 +309,7 @@ def dibujar_pantalla_juego(window):
                 sprite = obtener_sprite_fantasma(direccion_fantasma)
             elif str(valor).startswith('p') and str(valor) != "px":
                 try:
-                    player_id = int(str(valor)[1:]) - 1
+                    player_id = (int(str(valor)[1:]) - 1) % len(COLORES_PINGUINOS)
                     sprite = obtener_sprite_jugador(player_id, direccion_jugador)
                 except:
                     sprite = obtener_sprite_jugador(0, direccion_jugador)
@@ -388,7 +388,7 @@ def dibujar_pantalla_final(window):
         # Dibujar pingüino ganador
         for ip, player_data in PLAYERS.items():
             if player_data['username'] == ganador:
-                player_id = player_data['id'] - 1
+                player_id = (player_data['id'] - 1) % len(COLORES_PINGUINOS)
                 pinguino_ganador = obtener_sprite_jugador(player_id, "down")
                 pinguino_ganador = pygame.transform.scale(pinguino_ganador, (64, 64))
                 window.blit(pinguino_ganador, (ANCHO//2 - 32, 370))
