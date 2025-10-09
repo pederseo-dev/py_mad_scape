@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PYMAD SCAPE - Control</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: Arial, sans-serif;
+            background: #1a1a1a;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #fff;
+            padding: 20px;
+        }
+        
+        .container {
+            background: #2a2a2a;
+            border: 2px solid #444;
+            padding: 30px;
+            max-width: 400px;
+            width: 100%;
+            border-radius: 8px;
+        }
+        
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2em;
+            color: #fff;
+        }
+        
+        input {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #555;
+            border-radius: 4px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            background: #333;
+            color: #fff;
+        }
+        
+        input:focus {
+            outline: none;
+            border-color: #666;
+        }
+        
+        button {
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 4px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #4CAF50;
+            color: white;
+        }
+        
+        button:active {
+            background: #45a049;
+        }
+        
+        .joystick-area {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 1000;
+            touch-action: none;
+            background: #1a1a1a;
+        }
+        
+        .joystick-area.active {
+            display: block;
+        }
+        
+        .joystick-base {
+            position: absolute;
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.1);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            display: none;
+        }
+        
+        .joystick-stick {
+            position: absolute;
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: rgba(255, 255, 255, 0.5);
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+        }
+        
+        .status {
+            text-align: center;
+            margin-top: 20px;
+            font-size: 14px;
+            color: #aaa;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        .instructions {
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 18px;
+            line-height: 1.8;
+            pointer-events: none;
+            z-index: 999;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>PYMAD SCAPE</h1>
+        
+        <div id="register-section">
+            <input type="text" id="username" placeholder="Ingresa tu nombre" maxlength="15">
+            <button onclick="register()">Registrarse</button>
+        </div>
+        
+        <div id="status" class="status"></div>
+    </div>
+
+    <div id="joystick-area" class="joystick-area">
+        <div class="instructions">
+            <div>Toca cualquier parte de la pantalla</div>
+            <div>Arrastra en la dirección que quieres moverte</div>
+        </div>
+        <div id="joystick-base" class="joystick-base">
+            <div id="joystick-stick" class="joystick-stick"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = window.location.origin;
+        let playerRegistered = false;
+        let lastDirection = null;
+        
+        let joystickActive = false;
+        let joystickBase = null;
+        let joystickStick = null;
+        let touchStartX = 0;
+        let touchStartY = 0;
+        const DEAD_ZONE = 30;
+        const MAX_DISTANCE = 75;
+
+        async function register() {
+            const username = document.getElementById('username').value.trim();
+            
+            if (!username) {
+                showStatus('Por favor ingresa un nombre');
+                return;
+            }
+            
+            try {
+                const response = await fetch(`${API_URL}/register`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ username })
+                });
+                
+                const data = await response.json();
+                
+                if (response.ok) {
+                    playerRegistered = true;
+                    document.getElementById('register-section').classList.add('hidden');
+                    document.getElementById('joystick-area').classList.add('active');
+                    showStatus(`Bienvenido ${data.username}`);
+                    initJoystick();
+                } else {
+                    showStatus(data.detail);
+                }
+            } catch (error) {
+                showStatus('Error de conexión');
+            }
+        }
+        
+        function initJoystick() {
+            joystickBase = document.getElementById('joystick-base');
+            joystickStick = document.getElementById('joystick-stick');
+            const joystickArea = document.getElementById('joystick-area');
+            
+            joystickArea.addEventListener('touchstart', handleTouchStart, { passive: false });
+            joystickArea.addEventListener('touchmove', handleTouchMove, { passive: false });
+            joystickArea.addEventListener('touchend', handleTouchEnd, { passive: false });
+        }
+        
+        function handleTouchStart(e) {
+            e.preventDefault();
+            if (!playerRegistered) return;
+            
+            const touch = e.touches[0];
+            touchStartX = touch.clientX;
+            touchStartY = touch.clientY;
+            
+            joystickActive = true;
+            joystickBase.style.display = 'block';
+            joystickBase.style.left = (touchStartX - 75) + 'px';
+            joystickBase.style.top = (touchStartY - 75) + 'px';
+        }
+        
+        function handleTouchMove(e) {
+            e.preventDefault();
+            if (!joystickActive || !playerRegistered) return;
+            
+            const touch = e.touches[0];
+            const deltaX = touch.clientX - touchStartX;
+            const deltaY = touch.clientY - touchStartY;
+            
+            const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+            
+            let stickX = deltaX;
+            let stickY = deltaY;
+            
+            if (distance > MAX_DISTANCE) {
+                const angle = Math.atan2(deltaY, deltaX);
+                stickX = Math.cos(angle) * MAX_DISTANCE;
+                stickY = Math.sin(angle) * MAX_DISTANCE;
+            }
+            
+            joystickStick.style.transform = `translate(calc(-50% + ${stickX}px), calc(-50% + ${stickY}px))`;
+            
+            if (distance > DEAD_ZONE) {
+                const direction = getDirection(deltaX, deltaY);
+                
+                if (direction !== lastDirection) {
+                    lastDirection = direction;
+                    sendMove(direction);
+                }
+            }
+        }
+        
+        function handleTouchEnd(e) {
+            e.preventDefault();
+            if (!joystickActive) return;
+            
+            joystickActive = false;
+            joystickBase.style.display = 'none';
+            joystickStick.style.transform = 'translate(-50%, -50%)';
+            lastDirection = null;
+        }
+        
+        function getDirection(x, y) {
+            const angle = Math.atan2(y, x) * (180 / Math.PI);
+            
+            if (angle >= -45 && angle < 45) {
+                return 'right';
+            } else if (angle >= 45 && angle < 135) {
+                return 'down';
+            } else if (angle >= -135 && angle < -45) {
+                return 'up';
+            } else {
+                return 'left';
+            }
+        }
+        
+        async function sendMove(direction) {
+            if (!playerRegistered) return;
+            
+            try {
+                await fetch(`${API_URL}/move`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ direction })
+                });
+            } catch (error) {
+                console.error('Error al enviar movimiento:', error);
+            }
+        }
+        
+        function showStatus(message) {
+            const statusDiv = document.getElementById('status');
+            statusDiv.textContent = message;
+        }
+    </script>
+</body>
+</html>

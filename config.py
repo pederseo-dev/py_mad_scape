@@ -23,7 +23,7 @@ WINDOW_VIEW = MENU_VIEW
 FPS = 60
 
 # Calcular dimensiones de la ventana
-TAMANO_CELDA = 32  # Aumentado para mejor definición
+TAMANO_CELDA = 20  # Aumentado para mejor definición
 filas = len(MAP)
 columnas = len(MAP[0])
 ANCHO = columnas * TAMANO_CELDA

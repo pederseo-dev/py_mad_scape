@@ -9,7 +9,7 @@ from algoritmo import Algoritmo
 from utils import obtener_url_servidor
 
 try:
-    from api import run_api
+    from joysticks.api import run_api
     api_thread = threading.Thread(target=run_api, daemon=True)
     api_thread.start()
     url, ip = obtener_url_servidor(puerto=80)
